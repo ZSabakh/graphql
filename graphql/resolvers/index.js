@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const Event = require("../../models/event");
 const User = require("../../models/user");
+const Booking = require("../../models/booking");
 
 module.exports = {
   events: () => {
@@ -9,6 +10,17 @@ module.exports = {
       .then((events) => {
         return events.map((event) => {
           return { ...event._doc };
+        });
+      })
+      .catch((err) => {
+        throw err;
+      });
+  },
+  bookings: () => {
+    return Booking.find()
+      .then((bookings) => {
+        return bookings.map((booking) => {
+          return { ...booking._doc };
         });
       })
       .catch((err) => {
@@ -69,5 +81,42 @@ module.exports = {
       .catch((err) => {
         throw err;
       });
+  },
+  bookEvent: (args) => {
+    const booking = new Booking({
+      userId: "61f36e47bcfc7dd982b4545d",
+      event: args.eventId,
+    });
+    let createdBooking;
+    return booking
+      .save()
+      .then((booking) => {
+        createdBooking = { ...booking._doc };
+        return Promise.all([Event.findById(args.eventId), User.findById("61f36e47bcfc7dd982b4545d")]);
+      })
+      .then((res) => {
+        const event = res[0];
+        const user = res[1];
+        if (!event) {
+          throw new Error("Event doesn't exist.");
+        }
+        if (!user) {
+          throw new Error("User doesn't exist.");
+        }
+
+        return { ...createdBooking, event, user };
+      })
+      .catch((err) => {
+        throw err;
+      });
+  },
+  cancelBooking: async (args) => {
+    try {
+      const deletedBooking = await Booking.findById(args.bookingId).populate("event");
+      await Booking.findByIdAndDelete(args.bookingId);
+      return deletedBooking.event;
+    } catch (err) {
+      throw err;
+    }
   },
 };
