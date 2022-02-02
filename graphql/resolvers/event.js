@@ -14,14 +14,18 @@ module.exports = {
         throw err;
       });
   },
-  createEvent: (args) => {
+  createEvent: (args, req) => {
+    if (!req.isAuthorized) {
+      throw new Error("Unauthorized!");
+    }
+
     const event = new Event({
       title: args.eventInput.title,
       description: args.eventInput.description,
       price: +args.eventInput.price,
       date: new Date(args.eventInput.date),
       //Hardcoded for now, before we have authentication in place
-      creator: "61f36e47bcfc7dd982b4545d",
+      creator: req.userId,
     });
     let createdEvent;
     let eventCreator;
@@ -29,7 +33,7 @@ module.exports = {
       .save()
       .then((res) => {
         createdEvent = { ...res._doc };
-        return User.findById("61f36e47bcfc7dd982b4545d");
+        return User.findById(req.userId);
       })
       .then((user) => {
         if (!user) {
